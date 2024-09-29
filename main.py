@@ -1,46 +1,6 @@
-from fastapi import FastAPI, Depends, HTTPException, File, UploadFile
-from fastapi.responses import JSONResponse
-
-from models import Base, Face
-from schemas import FaceSchema
-from database import SessionLocal, engine
-from sqlalchemy.orm import Session
-
-Base.metadata.create_all(bind=engine)
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
+import uvicorn
 
-
-app = FastAPI()
-
-
-@app.get("/hello")
-async def root():
-    return {"message": "Hello World"}
-
-@app.post('/add_face')
-async def add_face(request: FaceSchema, db: Session = Depends(get_db)):
-    face = Face(name=request.name, image_name=request.image_name)
-    db.add(face)
-    db.commit()
-    db.refresh(face)
-    return face
-
-@app.post('/')
-async def get_face(inputFile: UploadFile = File(...), db: Session = Depends(get_db)):
-
-    filename = inputFile.filename
-
-    face = db.query(Face).filter(Face.image_name == filename).first()
-    if face is None:
-        raise HTTPException(status_code=404, detail="Face not found")
-    return JSONResponse(status_code=200, content = {filename: face.name})
-
-
+if __name__ == "__main__":
+ uvicorn.run("app:app", host="0.0.0.0", port=8000)
