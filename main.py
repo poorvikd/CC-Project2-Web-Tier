@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import PlainTextResponse
 
 from models import Base, Face
 from schemas import FaceSchema
@@ -52,4 +52,4 @@ async def get_face(inputFile: UploadFile = File(...), db: Session = Depends(get_
     face = db.query(Face).filter(Face.image_name == filename).first()
     if face is None:
         raise HTTPException(status_code=404, detail="Face not found")
-    return JSONResponse(status_code=200, content = {filename: face.name})
+    return PlainTextResponse(status_code=200, content = filename+":"+face.name)
