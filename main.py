@@ -46,8 +46,9 @@ async def add_face(request: FaceSchema, db: Session = Depends(get_db)):
 @app.post('/')
 async def get_face(inputFile: UploadFile = File(...), db: Session = Depends(get_db)):
 
-    filename = inputFile.filename
+    filename = inputFile.filename.split('.')[0]
 
+    print(filename)
     face = db.query(Face).filter(Face.image_name == filename).first()
     if face is None:
         raise HTTPException(status_code=404, detail="Face not found")
