@@ -1,17 +1,16 @@
 import pandas as pd
-import requests
-url = 'http://localhost:8000'
+import json
 
 def ingest(file_path):
     df = pd.read_csv(file_path, header=0)
-
+    faces = {}
     for index, row in df.iterrows():
-        face = {'id':index, 'name':row['Results'], 'image_name':row['Image']}
-        response = requests.post(f'{url}/add_face', json=face)
-        if response.status_code == 200:
-            print(f'{index} added')
-        else:
-            print("Error")
+        faces[row['Image']] = row['Results']
+
+    with open('faces.json', 'w+') as f:
+        json.dump(faces, f)
+
+
 
 
 
