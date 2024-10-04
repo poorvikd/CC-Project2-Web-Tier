@@ -16,4 +16,4 @@ def ingest(file_path):
 
 
 
-ingest('/Users/poorvikd/Documents/CloudComp/Project2-Web-Tier/Classification Results on Face Dataset (1000 images).csv')
+ingest('/Users/poorvikd/Documents/CloudComp/CSE546-Cloud-Computing/dataset/Classification Results on Face Dataset (100 images).csv')
