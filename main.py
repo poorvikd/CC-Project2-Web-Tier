@@ -4,7 +4,13 @@ from fastapi.responses import PlainTextResponse
 import boto3
 import time
 import uuid
+import logging
 # from autoscaler import autoscale
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+logger = logging.getLogger("fastapi_app")
+
 
 
 SQS_REQUEST = 'https://sqs.us-east-1.amazonaws.com/474668424004/1229658367-req-queue'
@@ -26,6 +32,7 @@ app.add_middleware(
 
 @app.get("/hello")
 async def root():
+    logger.info("Hello World End-point Accessed")
     return {"message": "Hello World"}
 
 @app.post('/')
@@ -34,6 +41,8 @@ async def get_face(inputFile: UploadFile = File(...)):
 
     file = inputFile.filename
     filename = inputFile.filename.split('.')[0]
+
+    logger.info(f"File Upload Request Received for {filename}")
 
     sqs = boto3.client('sqs')  
 
@@ -45,8 +54,9 @@ async def get_face(inputFile: UploadFile = File(...)):
 
     try:
         s3.upload_fileobj(inputFile.file, S3_REQUEST, inputFile.filename)
-        print(f"File {filename} uploaded to {S3_REQUEST}")
+        logger.info(f"File {filename} uploaded to {S3_REQUEST}")
     except Exception as e:
+        logger.error(f"Error uploading file to S3. "+str(e))
         raise HTTPException(status_code=404, detail="Error uploading file to S3. "+str(e))
 
     img_uuid = str(uuid.uuid4())
@@ -56,12 +66,13 @@ async def get_face(inputFile: UploadFile = File(...)):
             QueueUrl=SQS_REQUEST,
             MessageBody=message,
         )
-        print(f"Message sent to {SQS_REQUEST}")
+        logger.info(f"Message sent to {SQS_REQUEST}")
     except Exception as e:
-        print(f"Error sending message "+str(e))
+        logger.error(f"Error sending message to SQS. "+str(e))
         raise HTTPException(status_code=404, detail="Error sending message to SQS. "+str(e))
 
 
+    logger.info(f"Waiting for response for {filename}")
     # fetch response from SQS
     response = None
     while not response:
@@ -86,6 +97,7 @@ def get_response_from_sqs(sqs, im_uuid):
     message = response.get('Messages', [])
 
     if not message:
+        logger.info("No message in the queue")
         return None
 
     for message in message:
@@ -95,10 +107,12 @@ def get_response_from_sqs(sqs, im_uuid):
         img_uuid = body.split(":")[1]
 
         if img_uuid == im_uuid:
+            logger.info(f"Message received from SQS: {face}")
             sqs.delete_message(
                 QueueUrl=SQS_RESPONSE,
                 ReceiptHandle=receipt_handle
             )
             return face
 
+    logger.info("No message in the queue")
     return None
