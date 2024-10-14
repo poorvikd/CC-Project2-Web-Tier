@@ -102,8 +102,8 @@ def get_response_from_sqs(sqs, im_uuid):
         AttributeNames=['All'],
         MaxNumberOfMessages=10,
         MessageAttributeNames=['All'],
-        VisibilityTimeout=1,
-        WaitTimeSeconds=5
+        VisibilityTimeout=0,
+        WaitTimeSeconds=1
     )
     message = response.get('Messages', [])
 

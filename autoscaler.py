@@ -125,8 +125,8 @@ def determine_instance_count(message_count):
 def autoscale(sqs, ec2):
     """Autoscaling logic to manage EC2 instances based on SQS messages."""
     message_count = get_message_count(sqs, SQS_REQUEST)
-    if message_count == 0:
-        return
+    # if message_count == 0:
+    #     return
     running_instances = get_running_instances(ec2)
 
     # Extract the current instance numbers
@@ -153,7 +153,6 @@ if __name__ == "__main__":
     while True:
         try:
             autoscale(sqs, ec2)
-            time.sleep(5)  # Wait 3 seconds before checking again
         except KeyboardInterrupt:
             print("Autoscaler stopped by user.")
             break
