@@ -7,10 +7,21 @@ import uuid
 import logging
 # from autoscaler import autoscale
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
+# Create a logger instance for your app
 logger = logging.getLogger("fastapi_app")
+logger.setLevel(logging.INFO)
 
+# Create a handler to log to stdout (captured by Gunicorn)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# Define a log format
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+console_handler.setFormatter(formatter)
+
+# Add the handler to the logger
+logger.addHandler(console_handler)
 
 
 SQS_REQUEST = 'https://sqs.us-east-1.amazonaws.com/474668424004/1229658367-req-queue'
