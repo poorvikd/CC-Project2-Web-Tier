@@ -140,7 +140,7 @@ def autoscale(sqs, ec2):
         instances_to_launch = required_instances - current_instance_count
         launch_instances(ec2, instances_to_launch, existing_numbers)
 
-    elif required_instances < current_instance_count:
+    elif required_instances < current_instance_count and message_count < 1:
         instances_to_terminate = current_instance_count - required_instances
         terminate_instances(ec2, instances_to_terminate, existing_numbers)
 
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     while True:
         try:
             autoscale(sqs, ec2)
-            time.sleep(3)
+            time.sleep(10)
         except KeyboardInterrupt:
             print("Autoscaler stopped by user.")
             break
