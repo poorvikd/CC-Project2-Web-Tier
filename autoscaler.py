@@ -153,7 +153,7 @@ if __name__ == "__main__":
     while True:
         try:
             autoscale(sqs, ec2)
-            time.sleep(10)
+            time.sleep(30)
         except KeyboardInterrupt:
             print("Autoscaler stopped by user.")
             break
