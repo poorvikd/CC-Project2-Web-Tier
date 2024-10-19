@@ -46,6 +46,21 @@ async def root():
     logger.info("Hello World End-point Accessed")
     return {"message": "Hello World"}
 
+
+def append_to_req_count():
+    # Open the file in append mode ('a')
+    with open('ReqCount.txt', 'a') as f:
+        # Append 'R' to the file
+        f.write('R')
+        f.close()
+
+
+def append_to_suc_count():
+    # Open the file in append mode ('a')
+    with open('SucCount.txt', 'a') as f:
+        # Append 'S' to the file
+        f.write('S')
+        f.close()
 @app.post('/')
 async def get_face(inputFile: UploadFile = File(...)):
 
@@ -60,6 +75,8 @@ async def get_face(inputFile: UploadFile = File(...)):
     s3 = boto3.client('s3')
 
     ec2 = boto3.client('ec2')
+
+    append_to_req_count()
 
     # autoscale(sqs, ec2)
 
@@ -88,7 +105,7 @@ async def get_face(inputFile: UploadFile = File(...)):
     response = None
     while not response:
         response = get_response_from_sqs(sqs, img_uuid)
-        time.sleep(2)
+        time.sleep(1)
 
     # autoscale(sqs, ec2)
     return PlainTextResponse(status_code=200, content = filename+":"+response)
@@ -100,10 +117,10 @@ def get_response_from_sqs(sqs, im_uuid):
     response = sqs.receive_message(
         QueueUrl=SQS_RESPONSE,
         AttributeNames=['All'],
-        MaxNumberOfMessages=10,
+        MaxNumberOfMessages=5,
         MessageAttributeNames=['All'],
         VisibilityTimeout=0,
-        WaitTimeSeconds=1
+        WaitTimeSeconds=2
     )
     message = response.get('Messages', [])
 
@@ -123,6 +140,9 @@ def get_response_from_sqs(sqs, im_uuid):
                 QueueUrl=SQS_RESPONSE,
                 ReceiptHandle=receipt_handle
             )
+
+            append_to_suc_count()
+
             return face
 
     logger.info("No message in the queue")

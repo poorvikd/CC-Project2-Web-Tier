@@ -107,9 +107,48 @@ def terminate_instances(ec2, count, existing_numbers):
             if number in highest_numbers:
                 instances_to_terminate.append(instance['InstanceId'])
 
+
+
     if instances_to_terminate:
         ec2.terminate_instances(InstanceIds=instances_to_terminate)
         print(f"Terminated instances: {instances_to_terminate}")
+
+    try:
+        with open('ReqCount.txt', 'w') as f:
+            f.truncate(0)
+        with open('SucCount.txt', 'w') as f:
+            f.truncate(0)
+        print("Text files emptied.")
+    except Exception as e:
+        print(f"Error emptying text files: {e}")
+
+
+def get_req_count():
+    try:
+        # Open the file in read mode
+        with open('ReqCount.txt', 'r') as f:
+            # Read the entire content of the file
+            content = f.read()
+            # Count the number of characters (which equals the number of 'R's)
+            r_count = len(content)
+            return r_count
+    except FileNotFoundError:
+        # If the file doesn't exist, return 0
+        return 0
+
+
+def get_suc_count():
+    try:
+        # Open the file in read mode
+        with open('SucCount.txt', 'r') as f:
+            # Read the entire content of the file
+            content = f.read()
+            # Count the number of characters (which equals the number of 'R's)
+            r_count = len(content)
+            return r_count
+    except FileNotFoundError:
+        # If the file doesn't exist, return 0
+        return 0
 
 
 def determine_instance_count(message_count):
@@ -123,6 +162,7 @@ def determine_instance_count(message_count):
 
 
 def autoscale(sqs, ec2):
+    global max_needed_instances
     """Autoscaling logic to manage EC2 instances based on SQS messages."""
     message_count = get_message_count(sqs, SQS_REQUEST)
     # if message_count == 0:
@@ -133,16 +173,23 @@ def autoscale(sqs, ec2):
     existing_numbers = extract_instance_numbers(running_instances)
 
     # Determine the required number of instances based on message count
-    required_instances = determine_instance_count(message_count)
+    req_count = get_req_count()
+    suc_count = get_suc_count()
+
+    req_instances = req_count - suc_count
+
+    try:
+        max_needed_instances = max(max_needed_instances, req_instances)
+    except NameError:
+        max_needed_instances = req_instances
+
     current_instance_count = len(running_instances)
 
-    if required_instances > current_instance_count:
-        instances_to_launch = required_instances - current_instance_count
-        launch_instances(ec2, instances_to_launch, existing_numbers)
-
-    elif required_instances < current_instance_count and message_count < 1:
-        instances_to_terminate = current_instance_count - required_instances
-        terminate_instances(ec2, instances_to_terminate, existing_numbers)
+    if req_instances > current_instance_count:
+        launch_instances(ec2, req_instances - current_instance_count, existing_numbers)
+    elif req_count == suc_count and req_count != 0:
+        terminate_instances(ec2, current_instance_count - 1, existing_numbers)
+        max_needed_instances = 0
 
 
 if __name__ == "__main__":
@@ -153,7 +200,7 @@ if __name__ == "__main__":
     while True:
         try:
             autoscale(sqs, ec2)
-            time.sleep(30)
+            time.sleep(5)
         except KeyboardInterrupt:
             print("Autoscaler stopped by user.")
             break
