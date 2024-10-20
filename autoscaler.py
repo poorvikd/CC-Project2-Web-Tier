@@ -2,7 +2,6 @@ import boto3
 import time
 import botocore
 
-
 # Configuration Constants
 AMI_ID = 'ami-0942590d76b3c1a3b'
 INSTANCE_TYPE = 't2.micro'
@@ -12,7 +11,6 @@ SUBNET_ID = 'subnet-02cc46c69f3b1e686'
 KEY_NAME = 'pd-cc-2-web-tier'
 SQS_REQUEST = 'https://sqs.us-east-1.amazonaws.com/474668424004/1229658367-req-queue'
 SQS_RESPONSE = 'https://sqs.us-east-1.amazonaws.com/474668424004/1229658367-resp-queue'
-
 
 def get_message_count(sqs, queue_url):
     """Retrieve the number of messages in the SQS queue."""
@@ -85,7 +83,7 @@ def launch_instances(ec2, count, existing_numbers):
     return instances
 
 
-def terminate_instances(ec2, count, existing_numbers):
+def terminate_instances(ec2, count, existing_numbers, sqs):
     """Terminate the highest numbered EC2 instances."""
     print(f"Terminating {count} instances...")
 
@@ -110,55 +108,32 @@ def terminate_instances(ec2, count, existing_numbers):
             if number in highest_numbers:
                 instances_to_terminate.append(instance['InstanceId'])
 
-
-
     if instances_to_terminate:
         ec2.terminate_instances(InstanceIds=instances_to_terminate)
         print(f"Terminated instances: {instances_to_terminate}")
 
-    # Purge the queue
+    # Purge the queues
     if get_req_count() > 0:
-        purge_queue_with_retry(SQS_REQUEST)
+        purge_queue_with_retry(sqs, SQS_REQUEST)
 
-    purge_queue_with_retry(SQS_RESPONSE)
-
-    # try:
-    #     with open('ReqCount.txt', 'w') as f:
-    #         f.truncate(0)
-    #     with open('SucCount.txt', 'w') as f:
-    #         f.truncate(0)
-    #     print("Text files emptied.")
-    # except Exception as e:
-    #     print(f"Error emptying text files: {e}")
-
-
+    purge_queue_with_retry(sqs, SQS_RESPONSE)
 
 
 def get_req_count():
     try:
-        # Open the file in read mode
         with open('ReqCount.txt', 'r') as f:
-            # Read the entire content of the file
             content = f.read()
-            # Count the number of characters (which equals the number of 'R's)
-            r_count = len(content)
-            return r_count
+            return len(content)
     except FileNotFoundError:
-        # If the file doesn't exist, return 0
         return 0
 
 
 def get_suc_count():
     try:
-        # Open the file in read mode
         with open('SucCount.txt', 'r') as f:
-            # Read the entire content of the file
             content = f.read()
-            # Count the number of characters (which equals the number of 'R's)
-            r_count = len(content)
-            return r_count
+            return len(content)
     except FileNotFoundError:
-        # If the file doesn't exist, return 0
         return 0
 
 
@@ -172,58 +147,47 @@ def determine_instance_count(message_count):
         return 10  # Gradually scale to 10 instances
     return 0
 
-def purge_queue_with_retry(queue_url):
+
+def purge_queue_with_retry(sqs, queue_url):
     max_attempts = 5
-    base_delay = 2  # Initial delay in seconds
-    max_delay = 60  # Maximum delay in seconds
+    base_delay = 2
+    max_delay = 60
 
     for attempt in range(max_attempts):
         try:
-            response = sqs.purge_queue(QueueUrl=queue_url)
-            return response
+            sqs.purge_queue(QueueUrl=queue_url)
+            print(f"Queue {queue_url} purged successfully.")
+            return
         except botocore.exceptions.ClientError as e:
-            error_code = e.response['Error']['Code']
-            if error_code == 'AWS.SimpleQueueService.PurgeQueueInProgress':
-                # Exponential backoff with jitter
+            if e.response['Error']['Code'] == 'AWS.SimpleQueueService.PurgeQueueInProgress':
                 delay = min(base_delay * 2 ** attempt, max_delay)
+                print(f"Purge in progress, retrying in {delay} seconds...")
                 time.sleep(delay)
             else:
-                raise  # Re-raise the exception if it's not due to PurgeQueueInProgress
-    # else:
-    #     raise RuntimeError("Max retry attempts reached for purging the queue.")
+                raise
+
 
 def autoscale(sqs, ec2):
-    global max_needed_instances
     """Autoscaling logic to manage EC2 instances based on SQS messages."""
-    message_count = get_message_count(sqs, SQS_REQUEST)
-    # if message_count == 0:
-    #     return
     running_instances = get_running_instances(ec2)
-
-    # Extract the current instance numbers
     existing_numbers = extract_instance_numbers(running_instances)
 
-    # Determine the required number of instances based on message count
     req_count = get_req_count()
-    print(f"Number of requests : {req_count}")
+    print(f"Number of requests: {req_count}")
     suc_count = get_suc_count()
-    print(f"Number of successful requests : {suc_count}")
+    print(f"Number of successful requests: {suc_count}")
 
-    req_instances = determine_instance_count(req_count)
+    if req_count == 0:
+        return
 
-    try:
-        max_needed_instances = max(max_needed_instances, req_instances)
-    except NameError:
-        max_needed_instances = req_instances
+    req_instances = determine_instance_count(req_count - suc_count)
 
     current_instance_count = len(running_instances)
 
     if req_instances > current_instance_count:
         launch_instances(ec2, req_instances - current_instance_count, existing_numbers)
-    elif req_count <= suc_count:
-        terminate_instances(ec2, current_instance_count, existing_numbers)
-
-        max_needed_instances = 0
+    elif req_count == suc_count:
+        terminate_instances(ec2, current_instance_count, existing_numbers, sqs)
 
 
 if __name__ == "__main__":
@@ -234,7 +198,7 @@ if __name__ == "__main__":
     while True:
         try:
             autoscale(sqs, ec2)
-            time.sleep(2)
+            time.sleep(2)  # Adjust this sleep time based on your requirements
         except KeyboardInterrupt:
             print("Autoscaler stopped by user.")
             break
