@@ -5,8 +5,6 @@ import boto3
 import time
 import uuid
 import logging
-# from autoscaler import autoscale
-
 
 # Create a logger instance for your app
 logger = logging.getLogger("fastapi_app")

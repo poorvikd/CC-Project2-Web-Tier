@@ -4,13 +4,14 @@ import botocore
 
 
 # Configuration Constants
-AMI_ID = 'ami-0c43569be8734f3d1'  # Replace with your AMI ID
+AMI_ID = 'ami-0f94e254f100f73a7'
 INSTANCE_TYPE = 't2.micro'
 MAX_INSTANCES = 20
-SECURITY_GROUP = ['sg-010603568c6b200af']  # Make sure this is a list
+SECURITY_GROUP = ['sg-010603568c6b200af']
 SUBNET_ID = 'subnet-02cc46c69f3b1e686'
 KEY_NAME = 'pd-cc-2-web-tier'
 SQS_REQUEST = 'https://sqs.us-east-1.amazonaws.com/474668424004/1229658367-req-queue'
+SQS_RESPONSE = 'https://sqs.us-east-1.amazonaws.com/474668424004/1229658367-resp-queue'
 
 
 def get_message_count(sqs, queue_url):
@@ -118,6 +119,8 @@ def terminate_instances(ec2, count, existing_numbers):
     # Purge the queue
     if get_req_count() > 0:
         purge_queue_with_retry(SQS_REQUEST)
+
+    purge_queue_with_retry(SQS_RESPONSE)
 
 
 
@@ -229,7 +232,7 @@ if __name__ == "__main__":
     while True:
         try:
             autoscale(sqs, ec2)
-            time.sleep(5)
+            time.sleep(2)
         except KeyboardInterrupt:
             print("Autoscaler stopped by user.")
             break
