@@ -1,5 +1,7 @@
 import boto3
 import time
+import botocore
+
 
 # Configuration Constants
 AMI_ID = 'ami-0c43569be8734f3d1'  # Replace with your AMI ID
@@ -113,6 +115,10 @@ def terminate_instances(ec2, count, existing_numbers):
         ec2.terminate_instances(InstanceIds=instances_to_terminate)
         print(f"Terminated instances: {instances_to_terminate}")
 
+    # Purge the queue
+    if get_req_count() > 0:
+        purge_queue_with_retry(SQS_REQUEST)
+
 
 
 
@@ -154,6 +160,25 @@ def determine_instance_count(message_count):
         return 10  # Gradually scale to 10 instances
     return 0
 
+def purge_queue_with_retry(queue_url):
+    max_attempts = 5
+    base_delay = 2  # Initial delay in seconds
+    max_delay = 60  # Maximum delay in seconds
+
+    for attempt in range(max_attempts):
+        try:
+            response = sqs.purge_queue(QueueUrl=queue_url)
+            return response
+        except botocore.exceptions.ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == 'AWS.SimpleQueueService.PurgeQueueInProgress':
+                # Exponential backoff with jitter
+                delay = min(base_delay * 2 ** attempt, max_delay)
+                time.sleep(delay)
+            else:
+                raise  # Re-raise the exception if it's not due to PurgeQueueInProgress
+    else:
+        raise RuntimeError("Max retry attempts reached for purging the queue.")
 
 def autoscale(sqs, ec2):
     global max_needed_instances
@@ -172,7 +197,7 @@ def autoscale(sqs, ec2):
     suc_count = get_suc_count()
     print(f"Number of successful requests : {suc_count}")
 
-    req_instances = determine_instance_count(req_count - suc_count)
+    req_instances = determine_instance_count(req_count)
 
     try:
         max_needed_instances = max(max_needed_instances, req_instances)
@@ -185,14 +210,14 @@ def autoscale(sqs, ec2):
         launch_instances(ec2, req_instances - current_instance_count, existing_numbers)
     elif req_count == suc_count:
         terminate_instances(ec2, current_instance_count, existing_numbers)
-        # try:
-        #     with open('ReqCount.txt', 'w') as f:
-        #         f.truncate(0)
-        #     with open('SucCount.txt', 'w') as f:
-        #         f.truncate(0)
-        #     print("Text files emptied.")
-        # except Exception as e:
-        #     print(f"Error emptying text files: {e}")
+        try:
+            with open('ReqCount.txt', 'w') as f:
+                f.truncate(0)
+            with open('SucCount.txt', 'w') as f:
+                f.truncate(0)
+            print("Text files emptied.")
+        except Exception as e:
+            print(f"Error emptying text files: {e}")
         max_needed_instances = 0
 
 
