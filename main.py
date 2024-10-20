@@ -107,7 +107,7 @@ async def get_face(inputFile: UploadFile = File(...)):
         response = get_response_from_sqs(sqs, img_uuid)
         time.sleep(1)
 
-    # autoscale(sqs, ec2)
+    append_to_suc_count()
     return PlainTextResponse(status_code=200, content = filename+":"+response)
 
 
@@ -140,8 +140,6 @@ def get_response_from_sqs(sqs, im_uuid):
                 QueueUrl=SQS_RESPONSE,
                 ReceiptHandle=receipt_handle
             )
-
-            append_to_suc_count()
 
             return face
 
