@@ -152,6 +152,7 @@ def determine_instance_count(message_count):
         return min(20, message_count)  # Gradually scale to 20 instances
     elif 0 < message_count < 10:
         return 10  # Gradually scale to 10 instances
+    return 0
 
 
 def autoscale(sqs, ec2):
