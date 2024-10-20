@@ -189,7 +189,7 @@ def autoscale(sqs, ec2):
 
     if req_instances > current_instance_count:
         launch_instances(ec2, req_instances - current_instance_count, existing_numbers)
-    elif req_count == suc_count and req_count != 0:
+    elif req_count == suc_count:
         terminate_instances(ec2, current_instance_count, existing_numbers)
         max_needed_instances = 0
 
