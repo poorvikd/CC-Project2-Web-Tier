@@ -112,11 +112,17 @@ def terminate_instances(ec2, count, existing_numbers, sqs):
         ec2.terminate_instances(InstanceIds=instances_to_terminate)
         print(f"Terminated instances: {instances_to_terminate}")
 
-    # Purge the queues
+    # # Purge the queues
     if get_req_count() > 0:
         purge_queue_with_retry(sqs, SQS_REQUEST)
-
-    purge_queue_with_retry(sqs, SQS_RESPONSE)
+    try:
+        with open('ReqCount.txt', 'w') as f:
+            f.truncate(0)
+        with open('SucCount.txt', 'w') as f:
+            f.truncate(0)
+        print("Text files emptied.")
+    except Exception as e:
+        print(f"Error emptying text files: {e}")
 
 
 def get_req_count():
