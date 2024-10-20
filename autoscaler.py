@@ -180,8 +180,8 @@ def purge_queue_with_retry(queue_url):
                 time.sleep(delay)
             else:
                 raise  # Re-raise the exception if it's not due to PurgeQueueInProgress
-    else:
-        raise RuntimeError("Max retry attempts reached for purging the queue.")
+    # else:
+    #     raise RuntimeError("Max retry attempts reached for purging the queue.")
 
 def autoscale(sqs, ec2):
     global max_needed_instances
