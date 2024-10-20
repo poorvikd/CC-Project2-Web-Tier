@@ -122,6 +122,15 @@ def terminate_instances(ec2, count, existing_numbers):
 
     purge_queue_with_retry(SQS_RESPONSE)
 
+    try:
+        with open('ReqCount.txt', 'w') as f:
+            f.truncate(0)
+        with open('SucCount.txt', 'w') as f:
+            f.truncate(0)
+        print("Text files emptied.")
+    except Exception as e:
+        print(f"Error emptying text files: {e}")
+
 
 
 
@@ -211,16 +220,9 @@ def autoscale(sqs, ec2):
 
     if req_instances > current_instance_count:
         launch_instances(ec2, req_instances - current_instance_count, existing_numbers)
-    elif req_count == suc_count:
+    elif req_count <= suc_count:
         terminate_instances(ec2, current_instance_count, existing_numbers)
-        try:
-            with open('ReqCount.txt', 'w') as f:
-                f.truncate(0)
-            with open('SucCount.txt', 'w') as f:
-                f.truncate(0)
-            print("Text files emptied.")
-        except Exception as e:
-            print(f"Error emptying text files: {e}")
+
         max_needed_instances = 0
 
 
