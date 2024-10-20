@@ -4,7 +4,7 @@ import botocore
 
 
 # Configuration Constants
-AMI_ID = 'ami-0f94e254f100f73a7'
+AMI_ID = 'ami-0942590d76b3c1a3b'
 INSTANCE_TYPE = 't2.micro'
 MAX_INSTANCES = 20
 SECURITY_GROUP = ['sg-010603568c6b200af']
