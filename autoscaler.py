@@ -186,7 +186,7 @@ def autoscale(sqs, ec2):
     if req_count == 0:
         return
 
-    req_instances = determine_instance_count(req_count - suc_count)
+    req_instances = determine_instance_count(req_count)
 
     current_instance_count = len(running_instances)
 
