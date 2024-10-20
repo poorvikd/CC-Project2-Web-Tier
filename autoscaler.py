@@ -122,14 +122,14 @@ def terminate_instances(ec2, count, existing_numbers):
 
     purge_queue_with_retry(SQS_RESPONSE)
 
-    try:
-        with open('ReqCount.txt', 'w') as f:
-            f.truncate(0)
-        with open('SucCount.txt', 'w') as f:
-            f.truncate(0)
-        print("Text files emptied.")
-    except Exception as e:
-        print(f"Error emptying text files: {e}")
+    # try:
+    #     with open('ReqCount.txt', 'w') as f:
+    #         f.truncate(0)
+    #     with open('SucCount.txt', 'w') as f:
+    #         f.truncate(0)
+    #     print("Text files emptied.")
+    # except Exception as e:
+    #     print(f"Error emptying text files: {e}")
 
 
 
