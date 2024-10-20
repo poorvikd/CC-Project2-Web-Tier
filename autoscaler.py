@@ -157,7 +157,7 @@ def determine_instance_count(message_count):
         return 20  # Cap at 20 instances
     elif 10 <= message_count < 50:
         return min(20, message_count)  # Gradually scale to 20 instances
-    else:
+    elif 0 < message_count < 10:
         return 10  # Gradually scale to 10 instances
 
 
