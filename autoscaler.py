@@ -184,9 +184,6 @@ def autoscale(sqs, ec2):
     suc_count = get_suc_count()
     print(f"Number of successful requests: {suc_count}")
 
-    if req_count == 0:
-        return
-
     req_instances = determine_instance_count(req_count)
 
     current_instance_count = len(running_instances)
