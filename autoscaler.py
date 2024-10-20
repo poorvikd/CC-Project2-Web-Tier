@@ -158,7 +158,7 @@ def determine_instance_count(message_count):
     elif 10 <= message_count < 50:
         return min(20, message_count)  # Gradually scale to 20 instances
     else:
-        return min(10, message_count)  # Gradually scale to 10 instances
+        return 10  # Gradually scale to 10 instances
 
 
 def autoscale(sqs, ec2):
@@ -174,9 +174,11 @@ def autoscale(sqs, ec2):
 
     # Determine the required number of instances based on message count
     req_count = get_req_count()
+    print(f"Number of requests : {req_count}")
     suc_count = get_suc_count()
+    print(f"Number of successful requests : {suc_count}")
 
-    req_instances = req_count - suc_count
+    req_instances = determine_instance_count(req_count - suc_count)
 
     try:
         max_needed_instances = max(max_needed_instances, req_instances)
@@ -188,7 +190,7 @@ def autoscale(sqs, ec2):
     if req_instances > current_instance_count:
         launch_instances(ec2, req_instances - current_instance_count, existing_numbers)
     elif req_count == suc_count and req_count != 0:
-        terminate_instances(ec2, current_instance_count - 1, existing_numbers)
+        terminate_instances(ec2, current_instance_count, existing_numbers)
         max_needed_instances = 0
 
 
