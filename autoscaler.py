@@ -175,6 +175,7 @@ def purge_queue_with_retry(sqs, queue_url):
 
 def autoscale(sqs, ec2):
     """Autoscaling logic to manage EC2 instances based on SQS messages."""
+    global max_needed_instances
     running_instances = get_running_instances(ec2)
     existing_numbers = extract_instance_numbers(running_instances)
 
@@ -190,8 +191,14 @@ def autoscale(sqs, ec2):
 
     current_instance_count = len(running_instances)
 
+    try:
+        max_needed_instances = max(req_instances, max_needed_instances)  # Update max_needed_instances
+    except NameError:
+        max_needed_instances = req_instances  # Initialize max_needed_instances if it's not defined yet
+        print(f"Max needed instances : {max_needed_instances}")
+
     if req_instances > current_instance_count:
-        launch_instances(ec2, req_instances - current_instance_count, existing_numbers)
+        launch_instances(ec2, max_needed_instances - current_instance_count, existing_numbers)
     elif req_count == suc_count:
         terminate_instances(ec2, current_instance_count, existing_numbers, sqs)
 
