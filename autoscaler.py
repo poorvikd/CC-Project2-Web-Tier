@@ -85,6 +85,8 @@ def launch_instances(ec2, count, existing_numbers):
 
 def terminate_instances(ec2, count, existing_numbers, sqs):
     """Terminate the highest numbered EC2 instances."""
+
+    time.sleep(5)
     print(f"Terminating {count} instances...")
 
     # Sort the numbers in descending order to terminate the highest ones first
@@ -118,8 +120,10 @@ def terminate_instances(ec2, count, existing_numbers, sqs):
     try:
         with open('ReqCount.txt', 'w') as f:
             f.truncate(0)
+            f.close()
         with open('SucCount.txt', 'w') as f:
             f.truncate(0)
+            f.close()
         print("Text files emptied.")
     except Exception as e:
         print(f"Error emptying text files: {e}")
@@ -129,6 +133,7 @@ def get_req_count():
     try:
         with open('ReqCount.txt', 'r') as f:
             content = f.read()
+            f.close()
             return len(content)
     except FileNotFoundError:
         return 0
@@ -138,6 +143,7 @@ def get_suc_count():
     try:
         with open('SucCount.txt', 'r') as f:
             content = f.read()
+            f.close()
             return len(content)
     except FileNotFoundError:
         return 0
