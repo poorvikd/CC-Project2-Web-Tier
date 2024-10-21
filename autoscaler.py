@@ -114,19 +114,22 @@ def terminate_instances(ec2, count, existing_numbers, sqs):
         ec2.terminate_instances(InstanceIds=instances_to_terminate)
         print(f"Terminated instances: {instances_to_terminate}")
 
-    # # Purge the queues
-    if get_req_count() > 0:
-        purge_queue_with_retry(sqs, SQS_REQUEST)
-    try:
-        with open('ReqCount.txt', 'w') as f:
-            f.truncate(0)
-            f.close()
-        with open('SucCount.txt', 'w') as f:
-            f.truncate(0)
-            f.close()
-        print("Text files emptied.")
-    except Exception as e:
-        print(f"Error emptying text files: {e}")
+        # # Purge the queues
+        if get_req_count() > 0:
+            purge_queue_with_retry(sqs, SQS_REQUEST)
+        if get_suc_count() > 0:
+            purge_queue_with_retry(sqs, SQS_RESPONSE)
+
+        try:
+            with open('ReqCount.txt', 'w') as f:
+                f.truncate(0)
+                f.close()
+            with open('SucCount.txt', 'w') as f:
+                f.truncate(0)
+                f.close()
+            print("Text files emptied.")
+        except Exception as e:
+            print(f"Error emptying text files: {e}")
 
 
 def get_req_count():
@@ -201,8 +204,8 @@ def autoscale(sqs, ec2):
         print(f"Max needed instances : {max_needed_instances}")
 
     if req_instances > current_instance_count:
-        launch_instances(ec2, max_needed_instances - current_instance_count, existing_numbers)
-    elif req_count == suc_count:
+        launch_instances(ec2, req_instances - current_instance_count, existing_numbers)
+    elif req_count == suc_count and req_count > 0:
         terminate_instances(ec2, current_instance_count, existing_numbers, sqs)
 
 
